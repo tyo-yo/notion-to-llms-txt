@@ -1,8 +1,9 @@
 """Parser for Notion export directories."""
 
+import fnmatch
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from .models import NotionExport, NotionPage
 
@@ -16,11 +17,13 @@ class NotionExportParser:
     def __init__(
         self,
         export_path: Path,
-        min_file_size: int = 50,
-        min_content_lines: int = 2,
+        min_file_size: int = 200,
+        min_content_lines: int = 3,
         exclude_untitled: bool = True,
         exclude_link_only: bool = True,
         link_only_threshold: float = 0.8,
+        include_patterns: Optional[List[str]] = None,
+        exclude_patterns: Optional[List[str]] = None,
     ):
         """Initialize parser with export directory path and filtering options."""
         self.export_path = export_path
@@ -29,6 +32,8 @@ class NotionExportParser:
         self.exclude_untitled = exclude_untitled
         self.exclude_link_only = exclude_link_only
         self.link_only_threshold = link_only_threshold
+        self.include_patterns = include_patterns or []
+        self.exclude_patterns = exclude_patterns or []
     
     def parse(self) -> NotionExport:
         """Parse the entire export and return structured data."""
@@ -136,6 +141,10 @@ class NotionExportParser:
         if self.exclude_untitled and "Untitled" in file_path.stem:
             return False
         
+        # Check path-based patterns
+        if not self._matches_path_patterns(file_path):
+            return False
+        
         # Check if page has enough content after cleaning
         try:
             content = file_path.read_text(encoding='utf-8')
@@ -186,3 +195,34 @@ class NotionExportParser:
         ]
         
         return any(re.match(pattern, line) for pattern in patterns)
+    
+    def _get_full_path(self, file_path: Path) -> str:
+        """Generate full path string: category/page_title"""
+        category = self._determine_category(file_path)
+        
+        # Extract page title from filename
+        page_id = self._extract_page_id(file_path.stem)
+        title = self._extract_title(file_path.stem, page_id)
+        
+        # If category is "Root", just use the title
+        if category == "Root":
+            return title
+        
+        # Otherwise combine category and title
+        return f"{category}/{title}"
+    
+    def _matches_path_patterns(self, file_path: Path) -> bool:
+        """Check if file path matches include/exclude patterns."""
+        full_path = self._get_full_path(file_path)
+        
+        # If include patterns are specified, path must match at least one
+        if self.include_patterns:
+            if not any(fnmatch.fnmatch(full_path, pattern) for pattern in self.include_patterns):
+                return False
+        
+        # If exclude patterns are specified, path must not match any
+        if self.exclude_patterns:
+            if any(fnmatch.fnmatch(full_path, pattern) for pattern in self.exclude_patterns):
+                return False
+        
+        return True

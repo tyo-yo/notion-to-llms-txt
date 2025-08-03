@@ -19,6 +19,8 @@ class TestNotionExportParser:
             min_content_lines=2,
             exclude_untitled=True,
             exclude_link_only=True,
+            include_patterns=None,
+            exclude_patterns=None,
         )
         self.export_path = sample_export_path
 
@@ -164,3 +166,64 @@ Another real line.
         for line, expected in test_cases:
             result = self.parser._is_link_only_line(line)
             assert result == expected, f"Failed for line: {line}"
+
+    def test_path_pattern_filtering(self):
+        # Test include patterns
+        parser_include = NotionExportParser(
+            self.export_path,
+            min_file_size=50,
+            min_content_lines=2,
+            exclude_untitled=False,
+            exclude_link_only=False,
+            include_patterns=["Projects/*"],
+            exclude_patterns=None,
+        )
+        included_pages = parser_include._scan_pages()
+
+        # Should only include pages from Projects category
+        for page in included_pages:
+            assert page.category == "Projects"
+
+        # Test exclude patterns
+        parser_exclude = NotionExportParser(
+            self.export_path,
+            min_file_size=50,
+            min_content_lines=2,
+            exclude_untitled=False,
+            exclude_link_only=False,
+            include_patterns=None,
+            exclude_patterns=["Projects/Untitled*"],
+        )
+        excluded_pages = parser_exclude._scan_pages()
+
+        # Should not include any Untitled pages from Projects
+        untitled_projects = [
+            p
+            for p in excluded_pages
+            if p.category == "Projects" and "Untitled" in p.title
+        ]
+        assert len(untitled_projects) == 0
+
+    def test_full_path_generation(self):
+        # Test full path generation
+        projects_file = (
+            self.export_path
+            / "Projects"
+            / "AI Development Guidelines abc123def456789012345678901234ab.md"
+        )
+        full_path = self.parser._get_full_path(projects_file)
+        assert full_path == "Projects/AI Development Guidelines"
+
+        # Test root file path
+        root_file = self.export_path / "test.md"
+        # Create a mock file path for testing
+        from unittest.mock import patch
+
+        with patch.object(
+            self.parser,
+            "_extract_page_id",
+            return_value="abc123456789012345678901234567890",
+        ):
+            with patch.object(self.parser, "_extract_title", return_value="Test Page"):
+                full_path = self.parser._get_full_path(root_file)
+                assert full_path == "Test Page"

@@ -37,14 +37,14 @@ def main(
         help="Enable verbose output",
     ),
     min_file_size: int = typer.Option(
-        50,
+        200,
         "--min-size",
-        help="Minimum file size in bytes to include (default: 50)",
+        help="Minimum file size in bytes to include (default: 200)",
     ),
     min_content_lines: int = typer.Option(
-        2,
+        3,
         "--min-lines", 
-        help="Minimum content lines to include (default: 2)",
+        help="Minimum content lines to include (default: 3)",
     ),
     exclude_untitled: bool = typer.Option(
         True,
@@ -55,6 +55,16 @@ def main(
         True,
         "--exclude-link-only/--include-link-only",
         help="Exclude pages containing only links (default: True)",
+    ),
+    include_patterns: Optional[str] = typer.Option(
+        None,
+        "--include",
+        help="Include only paths matching these glob patterns (comma-separated, e.g., 'Projects/*,Team/Meeting*')",
+    ),
+    exclude_patterns: Optional[str] = typer.Option(
+        None,
+        "--exclude",
+        help="Exclude paths matching these glob patterns (comma-separated, e.g., 'Archive/*,Draft*')",
     ),
 ) -> None:
     """Convert Notion export to LLMS.txt format."""
@@ -77,12 +87,19 @@ def main(
         
         # Parse Notion export
         progress.update(task, description="Scanning pages...")
+        
+        # Parse patterns from comma-separated strings
+        include_patterns_list = [p.strip() for p in include_patterns.split(",")] if include_patterns else None
+        exclude_patterns_list = [p.strip() for p in exclude_patterns.split(",")] if exclude_patterns else None
+        
         parser = NotionExportParser(
             export_path,
             min_file_size=min_file_size,
             min_content_lines=min_content_lines,
             exclude_untitled=exclude_untitled,
             exclude_link_only=exclude_link_only,
+            include_patterns=include_patterns_list,
+            exclude_patterns=exclude_patterns_list,
         )
         
         progress.update(task, description="Analyzing structure...")
@@ -98,6 +115,7 @@ def main(
             stats = generator.get_summary_stats(export_data)
             console.print(f"📊 Processed {stats['total_pages']} pages")
             console.print(f"📁 Found {stats['total_categories']} categories")
+            console.print(f"📝 Generated {stats['output_chars']:,} characters ({stats['output_lines']:,} lines)")
         
         progress.remove_task(task)
     

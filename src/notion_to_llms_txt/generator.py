@@ -44,9 +44,12 @@ class LLMSTxtGenerator:
     
     def get_summary_stats(self, export: NotionExport) -> dict:
         """Get summary statistics about the export."""
+        content = self.generate(export)
         return {
             "total_pages": len(export.pages),
             "total_categories": len(export.categories),
             "largest_page_size": max(page.size_bytes for page in export.pages) if export.pages else 0,
             "categories": export.categories,
+            "output_chars": len(content),
+            "output_lines": len(content.splitlines()),
         }
