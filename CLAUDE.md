@@ -17,7 +17,7 @@ Generate a structured "table of contents" in LLMS.txt format that gives AI agent
 ```
 src/notion_to_llms_txt/
 ├── main.py          # Typer CLI entry point
-├── parser.py        # Notion export parsing logic  
+├── parser.py        # Notion export parsing logic
 ├── generator.py     # LLMS.txt generation
 └── models.py        # Data structures
 ```
@@ -26,7 +26,7 @@ src/notion_to_llms_txt/
 
 1. **Page ID Extraction**: Regex `[a-f0-9]{32}` from filenames
 2. **Priority Scoring**: File size (bytes) determines importance
-3. **URL Construction**: `https://notion.so/{workspace}/{page_id}`
+3. **URL Construction**: `https://notion.so/{page_id}`
 4. **Categorization**: Group by top-level directory structure
 
 ### Data Flow
@@ -42,14 +42,14 @@ Notion Export (ZIP) → Parser → Page Models → Generator → LLMS.txt
 @dataclass
 class NotionPage:
     title: str
-    page_id: str  
+    page_id: str
     file_path: Path
     category: str
     size_bytes: int
-    
+
     @property
     def notion_url(self) -> str:
-        return f"https://notion.so/{workspace}/{self.page_id}"
+        return f"https://notion.so/{self.page_id}"
 ```
 
 ### Priority Algorithm
@@ -143,7 +143,7 @@ uv run ruff format
 # Recommended
 uv tool install notion-to-llms-txt
 
-# Alternative  
+# Alternative
 pip install notion-to-llms-txt
 ```
 
@@ -164,7 +164,7 @@ pip install notion-to-llms-txt
 
 This tool is designed for:
 - **Knowledge workers** with large Notion workspaces
-- **AI agent users** who want efficient documentation access  
+- **AI agent users** who want efficient documentation access
 - **Teams** sharing workspace structure with AI assistants
 - **Developers** building AI-powered workflow tools
 
@@ -172,3 +172,63 @@ Generated LLMS.txt files should be:
 - Shared with AI agents before workspace-related conversations
 - Embedded in Notion pages for easy access
 - Updated regularly as workspace structure evolves
+
+## Current Development Tasks
+
+### 🚨 High Priority (Immediate)
+
+1. **Add Test Framework**
+   - pytest configuration and test directory structure
+   - Core functionality test cases (parser, generator, models)
+   - Test fixtures (sample Notion exports)
+
+2. **GitHub Actions CI/CD**
+   - Automated testing and linting
+   - Automated PyPI publishing on release
+   - Python 3.11-3.13 support
+
+3. **Create CHANGELOG.md**
+   - Version tracking and release notes
+   - Semantic versioning
+
+4. **Fix README Issues**
+   - Accurate Notion export instructions
+   - Improved UV installation guide
+   - Add Notion MCP usage recommendations
+
+### 🔧 Core Algorithm Improvements
+
+5. **Implement Filtering Algorithm**
+   - Filter empty pages (1-2 lines only)
+   - Filter "Untitled" pages (Notion defaults)
+   - Filter link-only pages (no substantial content)
+   - Analyze actual markdown files for better filtering
+
+6. **Improve Descriptions**
+   - Remove redundant title duplication
+   - Display actual page content snippets (Google search result style)
+   - Extract meaningful text from first few lines
+
+### 🎯 Current Issues
+
+7. **Main Problem Analysis**
+   - Current notion-llms.txt is too long (50k lines)
+   - Need Notion-specific page structure understanding
+   - Proper handling of Notion database/table features
+
+## User Requirements Summary
+
+- **Main Issue**: Generated LLMS.txt is too long (50k lines)
+- **Solution Needed**: Filtering algorithm to exclude low-value pages
+- **Specific Exclusion Targets**:
+  - Near-empty pages (1-2 lines only)
+  - Untitled pages (Notion defaults)
+  - Link-only pages (no substantial content)
+- **Improvements Wanted**: Remove title duplication, show actual page content snippets
+- **Future Consideration**: Proper handling of Notion database/table features
+
+## Working Session Notes
+
+**Last Updated**: 2025-08-04
+**Current Status**: MVP completed, filtering and quality improvement phase
+**Test Environment**: 49,410 pages, 3,997 categories (actual export)
