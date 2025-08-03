@@ -24,28 +24,53 @@ When working with AI agents like Claude, ChatGPT, or coding assistants, you ofte
 
 ## Installation
 
+### Option 1: UV (Recommended)
+
 ```bash
+# Install UV if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install notion-to-llms-txt
 uv tool install notion-to-llms-txt
+```
+
+### Option 2: pip
+
+```bash
+pip install notion-to-llms-txt
 ```
 
 ## Usage
 
 ### Step 1: Export from Notion
 
-1. Go to your Notion workspace
-2. Click **Settings & members** → **Settings** → **Export content**
-3. Choose **Export format: Markdown & CSV**
-4. Click **Export** and download the ZIP file
-5. Extract the ZIP to a folder (e.g., `/Users/you/notion-export/`)
+**For workspace admins:**
+1. **Settings & members** → **Settings** → **Export content**
+
+**For individual pages:**
+1. Click **⋯** (three dots) on any page → **Export**
+
+**Export settings:**
+- Format: **Markdown & CSV**
+- Content: **No files or images** 
+- ✅ **Include subpages**
+
+Extract the downloaded ZIP file to a folder.
+
+📖 [Official Notion export guide](https://www.notion.so/help/export-your-content)
 
 ### Step 2: Generate LLMS.txt
 
 ```bash
-notion-to-llms-txt /path/to/extracted/notion-export --workspace your-workspace-name
+notion-to-llms-txt /path/to/extracted/notion-export
 ```
 
-For more options:
+**Advanced filtering options:**
 ```bash
+# Exclude small pages and customize output
+notion-to-llms-txt /path/to/export --min-chars 200 --snippet-length 50
+
+# See all options
 notion-to-llms-txt --help
 ```
 
@@ -59,13 +84,13 @@ The tool generates a `notion-llms.txt` file like this:
 > Notion page structure and links overview
 
 ## Projects
-- [AI Development Guidelines](https://notion.so/your-workspace/abc123...): Complete guide for AI project workflows
-- [Product Roadmap 2025](https://notion.so/your-workspace/def456...): Strategic planning and feature priorities
-- [Engineering Standards](https://notion.so/your-workspace/ghi789...): Code review and deployment processes
+- [AI Development Guidelines](https://notion.so/abc123...): Complete guide for AI project workflows
+- [Product Roadmap 2025](https://notion.so/def456...): Strategic planning and feature priorities  
+- [Engineering Standards](https://notion.so/ghi789...): Code review and deployment processes
 
 ## Team Documentation  
-- [Onboarding Checklist](https://notion.so/your-workspace/jkl012...): New team member setup guide
-- [Meeting Notes Archive](https://notion.so/your-workspace/mno345...): Historical meeting records and decisions
+- [Onboarding Checklist](https://notion.so/jkl012...): New team member setup guide
+- [Meeting Notes Archive](https://notion.so/mno345...): Historical meeting records and decisions
 ```
 
 ## Recommended Usage
@@ -75,6 +100,15 @@ The tool generates a `notion-llms.txt` file like this:
 1. **Upload to your favorite AI agent** (Claude, ChatGPT, etc.)
 2. **Include in your prompts**: "Here's my workspace structure: [attach notion-llms.txt]"
 3. **Place in Notion**: Create a "AI Agent Resources" page and paste the content
+
+### 🚀 Best Practice: Combine with Notion MCP
+
+LLMS.txt provides a **snapshot** of your workspace structure but isn't real-time. For optimal AI assistance:
+
+1. **Use LLMS.txt for overview**: "This workspace map was created on [date]. Use it to understand my documentation structure."
+2. **Use [Notion MCP](https://developers.notion.com/docs/mcp) for details**: "For the latest content and detailed information, access pages directly via Notion MCP."
+
+This combination gives AI agents both **structural context** and **live data access**.
 
 ### 💡 Example Conversations
 
@@ -86,7 +120,7 @@ The tool generates a `notion-llms.txt` file like this:
 **After notion-to-llms-txt:**
 > "Can you help me find our deployment process documentation?" [includes LLMS.txt]
 > 
-> *AI: "Based on your workspace structure, check the 'Engineering Standards' page at https://notion.so/your-workspace/ghi789... - it likely contains your deployment processes."*
+> *AI: "Based on your workspace structure, check the 'Engineering Standards' page at https://notion.so/ghi789... - it likely contains your deployment processes."*
 
 ### 🔄 Keep It Updated
 
