@@ -1,6 +1,7 @@
 """Test Notion export parser."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -249,8 +250,6 @@ Another real line.
         # Test root file path
         root_file = self.export_path / "test.md"
         # Create a mock file path for testing
-        from unittest.mock import patch
-
         with patch.object(
             self.parser,
             "_extract_page_id",
@@ -259,3 +258,86 @@ Another real line.
             with patch.object(self.parser, "_extract_title", return_value="Test Page"):
                 full_path = self.parser._get_full_path(root_file)
                 assert full_path == "Test Page"
+
+    def test_character_based_filtering_comprehensive(self):
+        """Test that character-based filtering works correctly with cleaned content."""
+        # Test with very high character threshold
+        parser_strict = NotionExportParser(
+            self.export_path,
+            min_content_chars=1000,  # Very high threshold
+            min_content_lines=1,
+            exclude_untitled=False,
+            exclude_link_only=False,
+            content_snippet_length=32,
+        )
+        strict_pages = parser_strict._scan_pages()
+
+        # Verify all included pages meet the character requirement
+        for page in strict_pages:
+            content = page.file_path.read_text(encoding="utf-8")
+            cleaned_lines = parser_strict._clean_content_lines(content)
+            cleaned_content = " ".join(cleaned_lines)
+            assert len(cleaned_content) >= 1000, (
+                f"Page {page.title} has only {len(cleaned_content)} chars"
+            )
+
+    def test_multilingual_notion_property_filtering(self):
+        """Test that Notion property filtering works with various languages."""
+        # Create test content with multilingual properties
+        test_content = """# Test Page
+
+Author: John Doe
+作成者: 田中太郎
+创建者: 张三
+المؤلف: أحمد محمد
+Status: Draft
+ステータス: ドラフト
+
+This is the actual content that should be preserved.
+これは保持されるべきコンテンツです。
+这是应该保留的内容。
+"""
+
+        # Test the multilingual property filtering directly (no file needed)
+        cleaned_lines = self.parser._clean_content_lines(test_content)
+        cleaned_text = " ".join(cleaned_lines)
+
+        # Properties should be filtered out
+        assert "Author: John Doe" not in cleaned_text
+        assert "作成者: 田中太郎" not in cleaned_text
+        assert "创建者: 张三" not in cleaned_text
+        assert "المؤلف: أحمد محمد" not in cleaned_text
+        assert "Status: Draft" not in cleaned_text
+        assert "ステータス: ドラフト" not in cleaned_text
+
+        # Content should be preserved
+        assert "This is the actual content" in cleaned_text
+        assert "これは保持されるべき" in cleaned_text
+        assert "这是应该保留的内容" in cleaned_text
+
+    def test_regex_property_pattern_edge_cases(self):
+        """Test edge cases for Notion property regex pattern."""
+        test_cases = [
+            # Standard properties
+            ("# Title\n\nAuthor: John\nDate: 2025\n\nContent here", "Content here"),
+            # Properties with special characters
+            (
+                "# Title\n\nEmail: user@example.com\nURL: https://example.com\n\nContent",
+                "Content",
+            ),
+            # Mixed language properties
+            ("# Title\n\n作成者: 田中\nStatus: Draft\n\nコンテンツ", "コンテンツ"),
+            # Properties with colons in values
+            ("# Title\n\nTime: 10:30 AM\nRatio: 16:9\n\nContent", "Content"),
+            # No properties (should remain unchanged)
+            ("# Title\n\nJust content here", "Just content here"),
+            # Properties without header
+            ("Author: John\nStatus: Draft\n\nContent", "Content"),
+        ]
+
+        for input_content, expected_in_output in test_cases:
+            cleaned_lines = self.parser._clean_content_lines(input_content)
+            cleaned_text = " ".join(cleaned_lines)
+            assert expected_in_output in cleaned_text, (
+                f"Failed for input: {input_content[:50]}..."
+            )
