@@ -15,7 +15,7 @@ class TestNotionExportParser:
         # Use explicit parameters to avoid dependency on changing defaults
         self.parser = NotionExportParser(
             sample_export_path,
-            min_file_size=50,
+            min_content_chars=50,
             min_content_lines=2,
             exclude_untitled=True,
             exclude_link_only=True,
@@ -98,39 +98,41 @@ class TestNotionExportParser:
             assert len(page.page_id) == 32
             assert page.size_bytes > 0
 
-    def test_filtering_by_file_size(self):
-        # Test with 1000 byte threshold - only Setup Guide (1260 bytes) should remain
-        # Other files: AI Guidelines (680), Meeting Notes (669), Links Collection (150),
-        # Untitled (38), Empty Page (12) are all under 1000 bytes
-        parser_large_files = NotionExportParser(
+    def test_filtering_by_content_chars(self):
+        # Test with high character threshold - only pages with substantial content should remain
+        parser_large_content = NotionExportParser(
             self.export_path,
-            min_file_size=1000,
+            min_content_chars=500,
             exclude_untitled=False,
             exclude_link_only=False,
             content_snippet_length=32,
         )
-        large_pages = parser_large_files._scan_pages()
+        large_pages = parser_large_content._scan_pages()
 
-        # Should only include 1 page: Setup Guide (1260 bytes)
-        assert len(large_pages) == 1
-        assert all(page.size_bytes >= 1000 for page in large_pages)
-        assert large_pages[0].title == "Setup Guide"
+        # Should only include pages with substantial content after cleaning
+        assert len(large_pages) >= 1
+        for page in large_pages:
+            # Verify each page has substantial content after cleaning
+            content = page.file_path.read_text(encoding="utf-8")
+            cleaned_lines = parser_large_content._clean_content_lines(content)
+            cleaned_content = " ".join(cleaned_lines)
+            assert len(cleaned_content) >= 500
 
     def test_filtering_untitled_pages(self):
         # Test with exclude_untitled=False - should include Untitled page
         parser_include_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=False, min_file_size=30, content_snippet_length=32
+            self.export_path, exclude_untitled=False, min_content_chars=20, content_snippet_length=32
         )
         pages_with_untitled = parser_include_untitled._scan_pages()
 
-        # Should include the Untitled page (38 bytes, above min_file_size=30)
+        # Should include the Untitled page (meets min_content_chars=20)
         untitled_pages = [p for p in pages_with_untitled if "Untitled" in p.title]
         assert len(untitled_pages) == 1
         assert untitled_pages[0].title == "Untitled"
 
         # Test with exclude_untitled=True (default) - should exclude Untitled page
         parser_exclude_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=True, min_file_size=30, content_snippet_length=32
+            self.export_path, exclude_untitled=True, min_content_chars=20, content_snippet_length=32
         )
         pages_without_untitled = parser_exclude_untitled._scan_pages()
 
@@ -193,7 +195,7 @@ Another real line.
         # Test include patterns
         parser_include = NotionExportParser(
             self.export_path,
-            min_file_size=50,
+            min_content_chars=50,
             min_content_lines=2,
             exclude_untitled=False,
             exclude_link_only=False,
@@ -210,7 +212,7 @@ Another real line.
         # Test exclude patterns
         parser_exclude = NotionExportParser(
             self.export_path,
-            min_file_size=50,
+            min_content_chars=50,
             min_content_lines=2,
             exclude_untitled=False,
             exclude_link_only=False,

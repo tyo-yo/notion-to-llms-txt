@@ -36,10 +36,10 @@ def main(
         "-v",
         help="Enable verbose output",
     ),
-    min_file_size: int = typer.Option(
-        200,
-        "--min-size",
-        help="Minimum file size in bytes to include (default: 200)",
+    min_content_chars: int = typer.Option(
+        100,
+        "--min-chars",
+        help="Minimum content characters to include after cleaning (default: 100)",
     ),
     min_content_lines: int = typer.Option(
         3,
@@ -99,7 +99,7 @@ def main(
         
         parser = NotionExportParser(
             export_path,
-            min_file_size=min_file_size,
+            min_content_chars=min_content_chars,
             min_content_lines=min_content_lines,
             exclude_untitled=exclude_untitled,
             exclude_link_only=exclude_link_only,

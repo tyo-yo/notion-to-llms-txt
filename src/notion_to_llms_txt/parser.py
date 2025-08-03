@@ -27,7 +27,7 @@ class NotionExportParser:
     def __init__(
         self,
         export_path: Path,
-        min_file_size: int = 200,
+        min_content_chars: int = 100,
         min_content_lines: int = 3,
         exclude_untitled: bool = True,
         exclude_link_only: bool = True,
@@ -38,7 +38,7 @@ class NotionExportParser:
     ):
         """Initialize parser with export directory path and filtering options."""
         self.export_path = export_path
-        self.min_file_size = min_file_size
+        self.min_content_chars = min_content_chars
         self.min_content_lines = min_content_lines
         self.exclude_untitled = exclude_untitled
         self.exclude_link_only = exclude_link_only
@@ -146,10 +146,6 @@ class NotionExportParser:
 
     def _should_include_page(self, file_path: Path) -> bool:
         """Check if page should be included based on filtering criteria."""
-        # Check file size
-        if file_path.stat().st_size < self.min_file_size:
-            return False
-
         # Check title for "Untitled"
         if self.exclude_untitled and "Untitled" in file_path.stem:
             return False
@@ -164,10 +160,25 @@ class NotionExportParser:
             return False
 
         cleaned_lines = self._clean_content_lines(content)
-        return len(cleaned_lines) >= self.min_content_lines
+        
+        # Check content length (both lines and characters)
+        if len(cleaned_lines) < self.min_content_lines:
+            return False
+            
+        cleaned_content = " ".join(cleaned_lines)
+        if len(cleaned_content) < self.min_content_chars:
+            return False
+            
+        return True
 
-    def _clean_content_lines(self, content: str) -> List[str]:
+    def _clean_content_lines(self, content: str) -> list[str]:
         """Clean content by filtering out unwanted lines."""
+        # Remove Notion database properties at the start using regex
+        # Pattern: # Title\n\nkey: value\nkey: value\n\ncontent...
+        # Use [^\n:] to match any character except newline and colon for property keys
+        pattern = r'^(#.*?\n\n)?([^\n:]+:\s.*?\n)+\n+'
+        content = re.sub(pattern, '', content, flags=re.MULTILINE)
+        
         lines = content.strip().split("\n")
         cleaned_lines = []
 
@@ -215,15 +226,13 @@ class NotionExportParser:
         if not content:
             return ""
 
-        # Get cleaned content lines and filter out Notion properties for snippet
+        # Get cleaned content lines (Notion properties already filtered)
         cleaned_lines = self._clean_content_lines(content)
-        # Additional filtering for snippet: remove Notion database properties
-        snippet_lines = [line for line in cleaned_lines if ': ' not in line]
-        if not snippet_lines:
+        if not cleaned_lines:
             return ""
 
         # Join lines with spaces and truncate to desired length
-        full_text = " ".join(snippet_lines).strip()
+        full_text = " ".join(cleaned_lines).strip()
 
         if len(full_text) <= self.content_snippet_length:
             return full_text
