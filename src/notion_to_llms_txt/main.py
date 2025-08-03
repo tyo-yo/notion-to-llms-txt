@@ -36,6 +36,26 @@ def main(
         "-v",
         help="Enable verbose output",
     ),
+    min_file_size: int = typer.Option(
+        50,
+        "--min-size",
+        help="Minimum file size in bytes to include (default: 50)",
+    ),
+    min_content_lines: int = typer.Option(
+        2,
+        "--min-lines", 
+        help="Minimum content lines to include (default: 2)",
+    ),
+    exclude_untitled: bool = typer.Option(
+        True,
+        "--exclude-untitled/--include-untitled",
+        help="Exclude pages with 'Untitled' in title (default: True)",
+    ),
+    exclude_link_only: bool = typer.Option(
+        True,
+        "--exclude-link-only/--include-link-only",
+        help="Exclude pages containing only links (default: True)",
+    ),
 ) -> None:
     """Convert Notion export to LLMS.txt format."""
     if output is None:
@@ -57,7 +77,13 @@ def main(
         
         # Parse Notion export
         progress.update(task, description="Scanning pages...")
-        parser = NotionExportParser(export_path)
+        parser = NotionExportParser(
+            export_path,
+            min_file_size=min_file_size,
+            min_content_lines=min_content_lines,
+            exclude_untitled=exclude_untitled,
+            exclude_link_only=exclude_link_only,
+        )
         
         progress.update(task, description="Analyzing structure...")
         export_data = parser.parse()

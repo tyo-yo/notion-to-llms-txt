@@ -13,9 +13,22 @@ class NotionExportParser:
     # Regex pattern for extracting 32-character hex page IDs
     PAGE_ID_PATTERN = re.compile(r'[a-f0-9]{32}')
     
-    def __init__(self, export_path: Path):
-        """Initialize parser with export directory path."""
+    def __init__(
+        self,
+        export_path: Path,
+        min_file_size: int = 50,
+        min_content_lines: int = 2,
+        exclude_untitled: bool = True,
+        exclude_link_only: bool = True,
+        link_only_threshold: float = 0.8,
+    ):
+        """Initialize parser with export directory path and filtering options."""
         self.export_path = export_path
+        self.min_file_size = min_file_size
+        self.min_content_lines = min_content_lines
+        self.exclude_untitled = exclude_untitled
+        self.exclude_link_only = exclude_link_only
+        self.link_only_threshold = link_only_threshold
     
     def parse(self) -> NotionExport:
         """Parse the entire export and return structured data."""
@@ -33,8 +46,9 @@ class NotionExportParser:
         
         # Find all .md files recursively
         for md_file in self.export_path.rglob("*.md"):
-            page = self._parse_page_file(md_file)
-            pages.append(page)
+            if self._should_include_page(md_file):
+                page = self._parse_page_file(md_file)
+                pages.append(page)
         
         return pages
     
@@ -111,3 +125,64 @@ class NotionExportParser:
         """Extract unique categories from pages."""
         categories = set(page.category for page in pages)
         return sorted(list(categories))
+    
+    def _should_include_page(self, file_path: Path) -> bool:
+        """Check if page should be included based on filtering criteria."""
+        # Check file size
+        if file_path.stat().st_size < self.min_file_size:
+            return False
+        
+        # Check title for "Untitled"
+        if self.exclude_untitled and "Untitled" in file_path.stem:
+            return False
+        
+        # Check if page has enough content after cleaning
+        try:
+            content = file_path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            return False
+            
+        cleaned_lines = self._clean_content_lines(content)
+        return len(cleaned_lines) >= self.min_content_lines
+    
+    def _clean_content_lines(self, content: str) -> List[str]:
+        """Clean content by filtering out unwanted lines."""
+        lines = content.strip().split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            if self._should_keep_line(line):
+                cleaned_lines.append(line.strip())
+        
+        return cleaned_lines
+    
+    def _should_keep_line(self, line: str) -> bool:
+        """Check if line should be kept based on filtering criteria."""
+        line = line.strip()
+        
+        # Skip empty lines
+        if not line:
+            return False
+        
+        # Skip headers (markdown titles)
+        if line.startswith('#'):
+            return False
+        
+        # Skip link-only lines if exclude_link_only is enabled
+        if self.exclude_link_only and self._is_link_only_line(line):
+            return False
+        
+        return True
+    
+    def _is_link_only_line(self, line: str) -> bool:
+        """Check if line contains only links."""
+        line = line.strip()
+        
+        # Patterns for link-only lines
+        patterns = [
+            r'^\s*[-*]\s*\[.*?\]\(.*?\)\s*$',  # - [text](url)
+            r'^\s*\[.*?\]\(.*?\)\s*$',         # [text](url)
+            r'^\s*https?://\S+\s*$',           # bare URL
+        ]
+        
+        return any(re.match(pattern, line) for pattern in patterns)

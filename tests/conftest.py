@@ -14,7 +14,11 @@ def sample_export_path() -> Path:
 
 @pytest.fixture  
 def sample_pages_info() -> list[dict]:
-    """Return expected information about sample pages."""
+    """Return expected information about sample pages.
+    
+    should_include flag is based on filtering settings:
+    min_file_size=50, min_content_lines=2, exclude_untitled=True, exclude_link_only=True
+    """
     return [
         {
             "filename": "AI Development Guidelines abc123def456789012345678901234ab.md",

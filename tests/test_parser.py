@@ -12,14 +12,25 @@ class TestNotionExportParser:
 
     @pytest.fixture(autouse=True)
     def setup_parser(self, sample_export_path: Path):
-        self.parser = NotionExportParser(sample_export_path)
+        # Use explicit parameters to avoid dependency on changing defaults
+        self.parser = NotionExportParser(
+            sample_export_path,
+            min_file_size=50,
+            min_content_lines=2,
+            exclude_untitled=True,
+            exclude_link_only=True,
+        )
         self.export_path = sample_export_path
 
     def test_page_id_extraction(self):
-        valid_id = self.parser._extract_page_id("AI Development Guidelines abc123def456789012345678901234ab")
+        valid_id = self.parser._extract_page_id(
+            "AI Development Guidelines abc123def456789012345678901234ab"
+        )
         assert valid_id == "abc123def456789012345678901234ab"
 
-        valid_id2 = self.parser._extract_page_id("Setup Guide def345678901234567890abcdef12345")
+        valid_id2 = self.parser._extract_page_id(
+            "Setup Guide def345678901234567890abcdef12345"
+        )
         assert valid_id2 == "def345678901234567890abcdef12345"
 
     def test_page_id_extraction_failure(self):
@@ -28,12 +39,14 @@ class TestNotionExportParser:
 
     def test_title_extraction(self):
         title = self.parser._extract_title(
-            "AI Development Guidelines abc123def456789012345678901234ab", "abc123def456789012345678901234ab"
+            "AI Development Guidelines abc123def456789012345678901234ab",
+            "abc123def456789012345678901234ab",
         )
         assert title == "AI Development Guidelines"
 
         title2 = self.parser._extract_title(
-            "Meeting Notes - 2025-08-04 abc56789012345678901234567890abc", "abc56789012345678901234567890abc"
+            "Meeting Notes - 2025-08-04 abc56789012345678901234567890abc",
+            "abc56789012345678901234567890abc",
         )
         assert title2 == "Meeting Notes - 2025-08-04"
 
@@ -49,14 +62,19 @@ class TestNotionExportParser:
     def test_full_parse(self, sample_pages_info: list[dict]):
         export = self.parser.parse()
 
-        assert len(export.pages) == len(sample_pages_info)
+        # Only pages with should_include=True should be included after filtering
+        expected_included = [
+            page for page in sample_pages_info if page["should_include"]
+        ]
+        assert len(export.pages) == len(expected_included)
 
         expected_categories = {"Projects", "Documentation", "Team"}
         assert set(export.categories) == expected_categories
 
         page_by_id = {page.page_id: page for page in export.pages}
 
-        for expected_page in sample_pages_info:
+        # Only check pages that should be included
+        for expected_page in expected_included:
             page_id = expected_page["page_id"]
             assert page_id in page_by_id
 
@@ -68,10 +86,81 @@ class TestNotionExportParser:
     def test_scan_pages_file_discovery(self):
         pages = self.parser._scan_pages()
 
-        # Based on our test fixtures - need to match actual fixture count
-        assert len(pages) == 6
+        # After filtering, only 3 pages should remain (excluding Empty, Untitled, Links-only)
+        assert len(pages) == 3
 
         # Notion page IDs are always 32 character hex strings
         for page in pages:
             assert len(page.page_id) == 32
             assert page.size_bytes > 0
+
+    def test_filtering_by_file_size(self):
+        # Test with 1000 byte threshold - only Setup Guide (1260 bytes) should remain
+        # Other files: AI Guidelines (680), Meeting Notes (669), Links Collection (150),
+        # Untitled (38), Empty Page (12) are all under 1000 bytes
+        parser_large_files = NotionExportParser(
+            self.export_path,
+            min_file_size=1000,
+            exclude_untitled=False,
+            exclude_link_only=False,
+        )
+        large_pages = parser_large_files._scan_pages()
+
+        # Should only include 1 page: Setup Guide (1260 bytes)
+        assert len(large_pages) == 1
+        assert all(page.size_bytes >= 1000 for page in large_pages)
+        assert large_pages[0].title == "Setup Guide"
+
+    def test_filtering_untitled_pages(self):
+        # Test with exclude_untitled=False - should include Untitled page
+        parser_include_untitled = NotionExportParser(
+            self.export_path, exclude_untitled=False, min_file_size=30
+        )
+        pages_with_untitled = parser_include_untitled._scan_pages()
+
+        # Should include the Untitled page (38 bytes, above min_file_size=30)
+        untitled_pages = [p for p in pages_with_untitled if "Untitled" in p.title]
+        assert len(untitled_pages) == 1
+        assert untitled_pages[0].title == "Untitled"
+
+        # Test with exclude_untitled=True (default) - should exclude Untitled page
+        parser_exclude_untitled = NotionExportParser(
+            self.export_path, exclude_untitled=True, min_file_size=30
+        )
+        pages_without_untitled = parser_exclude_untitled._scan_pages()
+
+        # Should not include any Untitled pages
+        untitled_pages_excluded = [
+            p for p in pages_without_untitled if "Untitled" in p.title
+        ]
+        assert len(untitled_pages_excluded) == 0
+
+    def test_content_line_cleaning(self):
+        # Test content cleaning functionality
+        sample_content = """# Title
+
+This is real content.
+- [Link only](http://example.com)
+Another real line.
+
+"""
+        cleaned_lines = self.parser._clean_content_lines(sample_content)
+
+        # Should exclude header and empty lines, include real content
+        assert "This is real content." in cleaned_lines
+        assert "Another real line." in cleaned_lines
+        # Link-only line should be excluded if exclude_link_only=True
+        assert "- [Link only](http://example.com)" not in cleaned_lines
+
+    def test_link_only_detection(self):
+        test_cases = [
+            ("- [Test](http://example.com)", True),  # Bullet point link
+            ("[Test](http://example.com)", True),  # Plain link
+            ("http://example.com", True),  # Bare URL
+            ("This is text with [link](url)", False),  # Mixed content
+            ("Regular text content", False),  # Plain text
+        ]
+
+        for line, expected in test_cases:
+            result = self.parser._is_link_only_line(line)
+            assert result == expected, f"Failed for line: {line}"
