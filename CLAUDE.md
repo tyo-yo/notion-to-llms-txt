@@ -82,6 +82,11 @@ uv run ruff check
 uv run ruff format
 ```
 
+### Development Guidelines
+- **IMPORTANT**: Commit frequently after completing each logical unit of work
+- Always commit before starting new features or major changes
+- Use descriptive commit messages following the project's commit style
+
 ### Release Process
 1. Update version in `pyproject.toml`
 2. Update `CHANGELOG.md`
