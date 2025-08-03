@@ -1,25 +1,24 @@
 """Data models for Notion pages and exports."""
 
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import BaseModel, computed_field
 
 
 class NotionPage(BaseModel):
     """Represents a single Notion page from export."""
-    
+
     title: str
     page_id: str
     file_path: Path
     category: str
     size_bytes: int
     content_snippet: str
-    
+
     def notion_url(self) -> str:
         """Generate Notion URL for this page."""
         return f"https://notion.so/{self.page_id}"
-    
+
     @computed_field
     @property
     def priority_score(self) -> int:
@@ -29,15 +28,15 @@ class NotionPage(BaseModel):
 
 class NotionExport(BaseModel):
     """Represents the entire Notion export structure."""
-    
-    pages: List[NotionPage]
-    categories: List[str]
-    
-    def get_pages_by_category(self, category: str) -> List[NotionPage]:
+
+    pages: list[NotionPage]
+    categories: list[str]
+
+    def get_pages_by_category(self, category: str) -> list[NotionPage]:
         """Get all pages in a specific category, sorted by priority."""
         category_pages = [p for p in self.pages if p.category == category]
         return sorted(category_pages, key=lambda p: p.priority_score, reverse=True)
-    
-    def get_top_pages(self, limit: int = 100) -> List[NotionPage]:
+
+    def get_top_pages(self, limit: int = 100) -> list[NotionPage]:
         """Get top N pages across all categories by priority."""
         return sorted(self.pages, key=lambda p: p.priority_score, reverse=True)[:limit]

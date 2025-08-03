@@ -1,7 +1,6 @@
 """Pytest configuration and fixtures."""
 
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -12,10 +11,10 @@ def sample_export_path() -> Path:
     return Path(__file__).parent / "fixtures" / "sample_export"
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_pages_info() -> list[dict]:
     """Return expected information about sample pages.
-    
+
     should_include flag is based on filtering settings:
     min_content_chars=50, min_content_lines=2, exclude_untitled=True, exclude_link_only=True
     """
@@ -28,7 +27,7 @@ def sample_pages_info() -> list[dict]:
             "should_include": True,
         },
         {
-            "filename": "Empty Page def456789012345678901234567890ab.md", 
+            "filename": "Empty Page def456789012345678901234567890ab.md",
             "page_id": "def456789012345678901234567890ab",
             "title": "Empty Page",
             "category": "Projects",
@@ -36,7 +35,7 @@ def sample_pages_info() -> list[dict]:
         },
         {
             "filename": "Untitled fed789012345678901234567890abcde.md",
-            "page_id": "fed789012345678901234567890abcde", 
+            "page_id": "fed789012345678901234567890abcde",
             "title": "Untitled",
             "category": "Projects",
             "should_include": False,
@@ -44,7 +43,7 @@ def sample_pages_info() -> list[dict]:
         {
             "filename": "Links Collection abc012345678901234567890abcdef12.md",
             "page_id": "abc012345678901234567890abcdef12",
-            "title": "Links Collection", 
+            "title": "Links Collection",
             "category": "Projects",
             "should_include": False,
         },
@@ -52,7 +51,7 @@ def sample_pages_info() -> list[dict]:
             "filename": "Setup Guide def345678901234567890abcdef12345.md",
             "page_id": "def345678901234567890abcdef12345",
             "title": "Setup Guide",
-            "category": "Documentation", 
+            "category": "Documentation",
             "should_include": True,
         },
         {

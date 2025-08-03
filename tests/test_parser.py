@@ -121,7 +121,10 @@ class TestNotionExportParser:
     def test_filtering_untitled_pages(self):
         # Test with exclude_untitled=False - should include Untitled page
         parser_include_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=False, min_content_chars=20, content_snippet_length=32
+            self.export_path,
+            exclude_untitled=False,
+            min_content_chars=20,
+            content_snippet_length=32,
         )
         pages_with_untitled = parser_include_untitled._scan_pages()
 
@@ -132,7 +135,10 @@ class TestNotionExportParser:
 
         # Test with exclude_untitled=True (default) - should exclude Untitled page
         parser_exclude_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=True, min_content_chars=20, content_snippet_length=32
+            self.export_path,
+            exclude_untitled=True,
+            min_content_chars=20,
+            content_snippet_length=32,
         )
         pages_without_untitled = parser_exclude_untitled._scan_pages()
 
@@ -179,15 +185,15 @@ Another real line.
             / "Projects"
             / "Database Page 7d79223f342f9124d0ca375d71f877a7.md"
         )
-        
+
         snippet = self.parser._extract_content_snippet(db_page_file)
-        
+
         # Should not contain Notion database properties
         assert "Author: John Doe" not in snippet
         assert "Created time:" not in snippet
         assert "Status: Draft" not in snippet
         assert "Priority: High" not in snippet
-        
+
         # Should contain actual content
         assert "This is the actual content" in snippet or "Important feature" in snippet
 

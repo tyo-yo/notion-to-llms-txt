@@ -4,7 +4,6 @@ import fnmatch
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
 
 from .models import NotionExport, NotionPage
 
@@ -32,8 +31,8 @@ class NotionExportParser:
         exclude_untitled: bool = True,
         exclude_link_only: bool = True,
         link_only_threshold: float = 0.8,
-        include_patterns: Optional[List[str]] = None,
-        exclude_patterns: Optional[List[str]] = None,
+        include_patterns: list[str] | None = None,
+        exclude_patterns: list[str] | None = None,
         content_snippet_length: int = 32,
     ):
         """Initialize parser with export directory path and filtering options."""
@@ -54,7 +53,7 @@ class NotionExportParser:
 
         return NotionExport(pages=pages, categories=categories)
 
-    def _scan_pages(self) -> List[NotionPage]:
+    def _scan_pages(self) -> list[NotionPage]:
         """Scan export directory for all .md files and extract page info."""
         pages = []
 
@@ -139,10 +138,10 @@ class NotionExportParser:
         # Join with " - " to create hierarchical category
         return " - ".join(clean_parts) if clean_parts else "Uncategorized"
 
-    def _extract_categories(self, pages: List[NotionPage]) -> List[str]:
+    def _extract_categories(self, pages: list[NotionPage]) -> list[str]:
         """Extract unique categories from pages."""
-        categories = set(page.category for page in pages)
-        return sorted(list(categories))
+        categories = {page.category for page in pages}
+        return sorted(categories)
 
     def _should_include_page(self, file_path: Path) -> bool:
         """Check if page should be included based on filtering criteria."""
@@ -160,15 +159,15 @@ class NotionExportParser:
             return False
 
         cleaned_lines = self._clean_content_lines(content)
-        
+
         # Check content length (both lines and characters)
         if len(cleaned_lines) < self.min_content_lines:
             return False
-            
+
         cleaned_content = " ".join(cleaned_lines)
         if len(cleaned_content) < self.min_content_chars:
             return False
-            
+
         return True
 
     def _clean_content_lines(self, content: str) -> list[str]:
@@ -176,9 +175,9 @@ class NotionExportParser:
         # Remove Notion database properties at the start using regex
         # Pattern: # Title\n\nkey: value\nkey: value\n\ncontent...
         # Use [^\n:] to match any character except newline and colon for property keys
-        pattern = r'^(#.*?\n\n)?([^\n:]+:\s.*?\n)+\n+'
-        content = re.sub(pattern, '', content, flags=re.MULTILINE)
-        
+        pattern = r"^(#.*?\n\n)?([^\n:]+:\s.*?\n)+\n+"
+        content = re.sub(pattern, "", content, flags=re.MULTILINE)
+
         lines = content.strip().split("\n")
         cleaned_lines = []
 
@@ -199,7 +198,6 @@ class NotionExportParser:
         # Skip headers (markdown titles)
         if line.startswith("#"):
             return False
-
 
         # Skip link-only lines if exclude_link_only is enabled
         if self.exclude_link_only and self._is_link_only_line(line):
@@ -260,12 +258,16 @@ class NotionExportParser:
 
         # If include patterns are specified, path must match at least one
         if self.include_patterns:
-            if not any(fnmatch.fnmatch(full_path, pattern) for pattern in self.include_patterns):
+            if not any(
+                fnmatch.fnmatch(full_path, pattern) for pattern in self.include_patterns
+            ):
                 return False
 
         # If exclude patterns are specified, path must not match any
         if self.exclude_patterns:
-            if any(fnmatch.fnmatch(full_path, pattern) for pattern in self.exclude_patterns):
+            if any(
+                fnmatch.fnmatch(full_path, pattern) for pattern in self.exclude_patterns
+            ):
                 return False
 
         return True
