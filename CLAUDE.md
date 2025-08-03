@@ -1,0 +1,174 @@
+# CLAUDE.md - Development Context
+
+## Project Overview
+
+**notion-to-llms-txt** is a CLI tool that converts Notion workspace exports into LLMS.txt format for AI agent consumption.
+
+### Problem Statement
+AI agents (Claude, ChatGPT, coding assistants) struggle to efficiently navigate large Notion workspaces without understanding the documentation structure. This leads to ineffective searches and missed relevant information.
+
+### Solution
+Generate a structured "table of contents" in LLMS.txt format that gives AI agents instant workspace overview with proper prioritization and direct links.
+
+## Technical Architecture
+
+### Core Components
+
+```
+src/notion_to_llms_txt/
+├── main.py          # Typer CLI entry point
+├── parser.py        # Notion export parsing logic  
+├── generator.py     # LLMS.txt generation
+└── models.py        # Data structures
+```
+
+### Key Algorithms
+
+1. **Page ID Extraction**: Regex `[a-f0-9]{32}` from filenames
+2. **Priority Scoring**: File size (bytes) determines importance
+3. **URL Construction**: `https://notion.so/{workspace}/{page_id}`
+4. **Categorization**: Group by top-level directory structure
+
+### Data Flow
+
+```
+Notion Export (ZIP) → Parser → Page Models → Generator → LLMS.txt
+```
+
+## Implementation Details
+
+### Page Model
+```python
+@dataclass
+class NotionPage:
+    title: str
+    page_id: str  
+    file_path: Path
+    category: str
+    size_bytes: int
+    
+    @property
+    def notion_url(self) -> str:
+        return f"https://notion.so/{workspace}/{self.page_id}"
+```
+
+### Priority Algorithm
+- **Primary**: File size (larger = more important content)
+- **Future**: Could add backlink counting, child page count
+
+### Output Format
+```markdown
+# Notion Workspace
+
+> Notion page structure and links overview
+
+## {Category}
+- [{Title}]({URL}): {Title}
+```
+
+## Development Workflow
+
+### Setup
+```bash
+git clone https://github.com/tyo-yo/notion-to-llms-txt
+cd notion-to-llms-txt
+uv sync
+```
+
+### Testing
+```bash
+uv run pytest
+uv run ruff check
+uv run ruff format
+```
+
+### Release Process
+1. Update version in `pyproject.toml`
+2. Update `CHANGELOG.md`
+3. Create GitHub release
+4. GitHub Actions automatically publishes to PyPI
+
+## Technical Decisions
+
+### Why UV?
+- Modern Python package management
+- Fast dependency resolution
+- Built-in tool installation (`uv tool install`)
+
+### Why Typer?
+- Rich CLI experience with minimal code
+- Automatic help generation
+- Type-safe argument parsing
+
+### Why File Size Priority?
+- Simple and effective heuristic
+- Available without complex analysis
+- Larger pages typically contain more important content
+
+## Future Enhancements
+
+### Planned Features
+- Backlink analysis for better prioritization
+- Multiple workspace support
+- Custom categorization rules
+- LLM-powered page summarization (via LiteLLM)
+
+### Potential Improvements
+- Incremental updates (only process changed files)
+- Configuration file support
+- Multiple output formats (JSON, YAML)
+- Integration with Notion API for live updates
+
+## Testing Strategy
+
+### Test Data
+- `tests/fixtures/` contains sample Notion exports
+- Cover edge cases: empty pages, special characters, deep hierarchies
+
+### Test Coverage
+- Page ID extraction accuracy
+- URL construction correctness
+- LLMS.txt format compliance
+- CLI argument handling
+
+## Deployment
+
+### PyPI Publication
+- Automated via GitHub Actions on release
+- Semantic versioning
+- Wheel + source distribution
+
+### Installation Methods
+```bash
+# Recommended
+uv tool install notion-to-llms-txt
+
+# Alternative  
+pip install notion-to-llms-txt
+```
+
+## Contributing
+
+### Code Style
+- Ruff for formatting and linting
+- Type hints required
+- Docstrings for public functions
+
+### Pull Request Process
+1. Create feature branch from `main`
+2. Add tests for new functionality
+3. Ensure CI passes (tests + formatting)
+4. Submit PR with clear description
+
+## Usage Context
+
+This tool is designed for:
+- **Knowledge workers** with large Notion workspaces
+- **AI agent users** who want efficient documentation access  
+- **Teams** sharing workspace structure with AI assistants
+- **Developers** building AI-powered workflow tools
+
+Generated LLMS.txt files should be:
+- Shared with AI agents before workspace-related conversations
+- Embedded in Notion pages for easy access
+- Updated regularly as workspace structure evolves
