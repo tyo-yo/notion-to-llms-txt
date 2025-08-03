@@ -7,17 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-08-03
+
 ### Added
-- Filtering algorithm for empty and low-value pages
-- Improved page descriptions with content snippets
-- Test framework with pytest
-- GitHub Actions CI/CD pipeline
+- Smart filtering algorithm for empty and low-value pages
+- Character-based filtering instead of file size for more accurate content assessment  
+- Content snippets replacing redundant title duplication
+- Multilingual support for Notion database properties (Japanese, Chinese, Korean, Arabic)
+- Path-based include/exclude pattern filtering with glob support
+- Comprehensive test suite with pytest and 95% coverage
+- GitHub Actions CI/CD pipeline with automated PyPI publishing
+- Improved README with accurate Notion export instructions
+- Notion MCP integration recommendations
 
 ### Changed
-- URL construction simplified (removed workspace parameter)
+- CLI parameter `--min-size` renamed to `--min-chars` for clarity
+- Notion property filtering now uses smart regex pattern detection
+- File size priority replaced with content-based filtering
 
 ### Fixed
-- Documentation updates in CLAUDE.md
+- URL construction no longer requires non-existent workspace parameter
+- Corrected Notion export instructions for both admin and user workflows
 
 ## [0.1.0] - 2025-08-03
 
