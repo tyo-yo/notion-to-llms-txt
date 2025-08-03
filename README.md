@@ -1,5 +1,11 @@
 # notion-to-llms-txt
 
+[![PyPI version](https://badge.fury.io/py/notion-to-llms-txt.svg)](https://badge.fury.io/py/notion-to-llms-txt)
+[![Python](https://img.shields.io/pypi/pyversions/notion-to-llms-txt.svg)](https://pypi.org/project/notion-to-llms-txt/)
+[![CI](https://github.com/tyo-yo/notion-to-llms-txt/workflows/CI/badge.svg)](https://github.com/tyo-yo/notion-to-llms-txt/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/tyo-yo/notion-to-llms-txt.svg)](https://github.com/tyo-yo/notion-to-llms-txt/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/pypi/dm/notion-to-llms-txt.svg)](https://pypi.org/project/notion-to-llms-txt/)
+
 🤖 Convert your Notion workspace exports into AI-friendly LLMS.txt format
 
 ## The Problem
