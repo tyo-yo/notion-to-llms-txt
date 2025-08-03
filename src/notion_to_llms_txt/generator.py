@@ -28,7 +28,7 @@ class LLMSTxtGenerator:
                 # Add pages sorted by priority (file size)
                 for page in category_pages:
                     url = page.notion_url()
-                    line = f"- [{page.title}]({url}): {page.title}"
+                    line = f"- [{page.title}]({url}): {page.content_snippet}"
                     lines.append(line)
                 
                 lines.append("")

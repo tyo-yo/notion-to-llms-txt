@@ -21,6 +21,7 @@ class TestNotionExportParser:
             exclude_link_only=True,
             include_patterns=None,
             exclude_patterns=None,
+            content_snippet_length=32,
         )
         self.export_path = sample_export_path
 
@@ -88,8 +89,9 @@ class TestNotionExportParser:
     def test_scan_pages_file_discovery(self):
         pages = self.parser._scan_pages()
 
-        # After filtering, only 3 pages should remain (excluding Empty, Untitled, Links-only)
-        assert len(pages) == 3
+        # After filtering, only 4 pages should remain (excluding Empty, Untitled, Links-only)
+        # Includes: Setup Guide, AI Development Guidelines, Database Page, Meeting Notes
+        assert len(pages) == 4
 
         # Notion page IDs are always 32 character hex strings
         for page in pages:
@@ -105,6 +107,7 @@ class TestNotionExportParser:
             min_file_size=1000,
             exclude_untitled=False,
             exclude_link_only=False,
+            content_snippet_length=32,
         )
         large_pages = parser_large_files._scan_pages()
 
@@ -116,7 +119,7 @@ class TestNotionExportParser:
     def test_filtering_untitled_pages(self):
         # Test with exclude_untitled=False - should include Untitled page
         parser_include_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=False, min_file_size=30
+            self.export_path, exclude_untitled=False, min_file_size=30, content_snippet_length=32
         )
         pages_with_untitled = parser_include_untitled._scan_pages()
 
@@ -127,7 +130,7 @@ class TestNotionExportParser:
 
         # Test with exclude_untitled=True (default) - should exclude Untitled page
         parser_exclude_untitled = NotionExportParser(
-            self.export_path, exclude_untitled=True, min_file_size=30
+            self.export_path, exclude_untitled=True, min_file_size=30, content_snippet_length=32
         )
         pages_without_untitled = parser_exclude_untitled._scan_pages()
 
@@ -167,6 +170,25 @@ Another real line.
             result = self.parser._is_link_only_line(line)
             assert result == expected, f"Failed for line: {line}"
 
+    def test_notion_property_filtering_in_snippets(self):
+        # Test that Notion database properties are filtered out of content snippets
+        db_page_file = (
+            self.export_path
+            / "Projects"
+            / "Database Page 7d79223f342f9124d0ca375d71f877a7.md"
+        )
+        
+        snippet = self.parser._extract_content_snippet(db_page_file)
+        
+        # Should not contain Notion database properties
+        assert "Author: John Doe" not in snippet
+        assert "Created time:" not in snippet
+        assert "Status: Draft" not in snippet
+        assert "Priority: High" not in snippet
+        
+        # Should contain actual content
+        assert "This is the actual content" in snippet or "Important feature" in snippet
+
     def test_path_pattern_filtering(self):
         # Test include patterns
         parser_include = NotionExportParser(
@@ -177,6 +199,7 @@ Another real line.
             exclude_link_only=False,
             include_patterns=["Projects/*"],
             exclude_patterns=None,
+            content_snippet_length=32,
         )
         included_pages = parser_include._scan_pages()
 
@@ -193,6 +216,7 @@ Another real line.
             exclude_link_only=False,
             include_patterns=None,
             exclude_patterns=["Projects/Untitled*"],
+            content_snippet_length=32,
         )
         excluded_pages = parser_exclude._scan_pages()
 

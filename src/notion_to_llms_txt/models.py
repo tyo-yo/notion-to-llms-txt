@@ -1,7 +1,7 @@
 """Data models for Notion pages and exports."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, computed_field
 
@@ -14,6 +14,7 @@ class NotionPage(BaseModel):
     file_path: Path
     category: str
     size_bytes: int
+    content_snippet: str
     
     def notion_url(self) -> str:
         """Generate Notion URL for this page."""

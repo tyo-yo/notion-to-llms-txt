@@ -66,6 +66,11 @@ def main(
         "--exclude",
         help="Exclude paths matching these glob patterns (comma-separated, e.g., 'Archive/*,Draft*')",
     ),
+    content_snippet_length: int = typer.Option(
+        32,
+        "--snippet-length",
+        help="Length of content snippet to extract (default: 32)",
+    ),
 ) -> None:
     """Convert Notion export to LLMS.txt format."""
     if output is None:
@@ -100,6 +105,7 @@ def main(
             exclude_link_only=exclude_link_only,
             include_patterns=include_patterns_list,
             exclude_patterns=exclude_patterns_list,
+            content_snippet_length=content_snippet_length,
         )
         
         progress.update(task, description="Analyzing structure...")

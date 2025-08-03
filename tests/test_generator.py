@@ -21,21 +21,24 @@ class TestLLMSTxtGenerator:
                 page_id="abc123def456789012345678901234",
                 file_path=Path("/test/large.md"),
                 category="Projects",
-                size_bytes=3000
+                size_bytes=3000,
+                content_snippet="Large project description..."
             ),
             NotionPage(
                 title="Small Task",
                 page_id="def456789012345678901234567890",
                 file_path=Path("/test/small.md"),
                 category="Projects", 
-                size_bytes=500
+                size_bytes=500,
+                content_snippet="Small task description..."
             ),
             NotionPage(
                 title="Documentation",
                 page_id="ghi789012345678901234567890ab",
                 file_path=Path("/test/docs.md"),
                 category="Documentation",
-                size_bytes=2000
+                size_bytes=2000,
+                content_snippet="Documentation content..."
             )
         ]
         

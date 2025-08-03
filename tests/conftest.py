@@ -62,4 +62,11 @@ def sample_pages_info() -> list[dict]:
             "category": "Team",
             "should_include": True,
         },
+        {
+            "filename": "Database Page 7d79223f342f9124d0ca375d71f877a7.md",
+            "page_id": "7d79223f342f9124d0ca375d71f877a7",
+            "title": "Database Page",
+            "category": "Projects",
+            "should_include": True,
+        },
     ]
